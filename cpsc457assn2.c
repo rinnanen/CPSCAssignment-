@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
 struct Page
 {
     int pageNum;
@@ -56,6 +57,10 @@ struct Page dequeue(struct Queue* queue) {
     queue->front = queue->front->next;
 
     if (queue->front == NULL) { queue->rear = NULL; }
+
+    free(temp_node);
+    queue->size--;
+    return page;
 }
 
 int ref_length = 15050;
