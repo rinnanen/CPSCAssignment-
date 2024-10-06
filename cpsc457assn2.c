@@ -49,7 +49,7 @@ void OPT_output(struct Page *references);
 // constants
 int ref_length = 15050; // make it 150 for now so the data is manageable
 //int frame_count = 100;
-char cmp_string[] = "OPT";
+char cmp_string[] = "FIFO";
 char p1_table_line1[] = "+--------+-------------+-------------+\n";
 char p1_table_line2[] = "| Frames | Page Faults | Write backs |\n";
 char p1_table_line3[] = "| %6d | %11d | %11d |\n";
@@ -164,6 +164,18 @@ int* FIFO(struct Page *references, int ref_length, int frame) {
                 if (dirty_bit == 1) { write_backs++; }
             }
             enqueue(pages_queue, *this_page);
+
+        } else {
+            struct QueueNode* curr = pages_queue->front;
+            while (curr != NULL) {
+                if (curr->page.pageNum == this_pn) {
+                    if (curr->page.dirtyBit == 0 && this_db == 1) {
+                        curr->page.dirtyBit = 1;
+                    }
+                    break;
+                }
+                curr = curr->next;
+            }
         }
     }
     int* pfwb = (int*)malloc(2 * sizeof(int));
@@ -192,7 +204,7 @@ int* OPT(struct Page *references, int ref_length, int frame) {
     int page_faults = 0;
     int write_backs = 0;
 
-    for (int i =0; i < ref_length; i++) {
+    for (int i = 0; i < ref_length; i++) {
         struct Page *this_page = &references[i];
 
         if (inQueue(queue, this_page) == false) {
