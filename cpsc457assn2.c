@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 // structs
 struct Page
@@ -39,10 +40,11 @@ struct QueueNode* new_node(struct Page page) {
 void enqueue(struct Queue* queue, struct Page page);
 struct Page dequeue(struct Queue* queue);
 void FIFO(struct Page *references, int ref_length, int frame);
+bool inQueue(struct Queue *queue, struct Page *this_page);
 
 // constants
-int ref_length = 150; // make it 150 for now so the data is manageable
-int frame_count = 5;
+int ref_length = 15050; // make it 150 for now so the data is manageable
+int frame_count = 1;
 char cmp_string[] = "FIFO";
 
 int main()
@@ -120,15 +122,45 @@ struct Page dequeue(struct Queue* queue) {
     return page;
 }
 
+bool inQueue(struct Queue *queue, struct Page *this_page) {
+    struct QueueNode *node = queue->front;
+    while (node != NULL) {
+        int node_num = node->page.pageNum;
+        int comp_num = this_page->pageNum;
+        if (node_num == comp_num) {
+            return true;
+        }
+        node = node->next;
+    }
+    return false;
+}
+
 //FIFO: replaces the page that has been in memory the longest
 
 void FIFO(struct Page *references, int ref_length, int frame) {
+    struct Queue* pages_queue = new_queue();
+    int page_faults = 0;
+    int write_backs = 0;
+
     for (int i = 0; i < ref_length; i++) {
         struct Page *this_page = &references[i];
-        int pn = this_page->pageNum;
-        int db = this_page->dirtyBit;
-        printf("pn: %d, db:%d", pn, db);
+        int this_pn = this_page->pageNum;
+        int this_db = this_page->dirtyBit;
+        
+        if (inQueue(pages_queue, this_page) == false) {
+            page_faults++;
+
+            if (pages_queue->size == frame_count) {
+                struct Page old_page = dequeue(pages_queue);
+                int dirty_bit = old_page.dirtyBit;
+                if (dirty_bit == 1) {
+                    write_backs++;
+                }
+            }
+            enqueue(pages_queue, *this_page);
+        }
     }
+    printf("page faults: %d, write backs: %d\n", page_faults, write_backs);
 }
 
 //LRU: replaces the page that has not been used for the longest period of time
