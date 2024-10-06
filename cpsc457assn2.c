@@ -39,13 +39,17 @@ struct QueueNode* new_node(struct Page page) {
 // function prototypes
 void enqueue(struct Queue* queue, struct Page page);
 struct Page dequeue(struct Queue* queue);
-void FIFO(struct Page *references, int ref_length, int frame);
+int* FIFO(struct Page *references, int ref_length, int frame);
 bool inQueue(struct Queue *queue, struct Page *this_page);
+void FIFO_output(struct Page references[]);
 
 // constants
 int ref_length = 15050; // make it 150 for now so the data is manageable
-int frame_count = 1;
+//int frame_count = 100;
 char cmp_string[] = "FIFO";
+char p1_table_line1[] = "+--------+-------------+-------------+\n";
+char p1_table_line2[] = "| Frames | Page Faults | Write backs |\n";
+char p1_table_line3[] = "| %6d | %11d | %11d |\n";
 
 int main()
 //int argc, char *argv[]
@@ -83,7 +87,7 @@ int main()
 
     if (strcmp(cmp_string, "FIFO") == 0) {
         //argv[1]
-        FIFO(references, ref_length, frame_count);
+        FIFO_output(references);
     }
 
     fclose(file);
@@ -137,7 +141,7 @@ bool inQueue(struct Queue *queue, struct Page *this_page) {
 
 //FIFO: replaces the page that has been in memory the longest
 
-void FIFO(struct Page *references, int ref_length, int frame) {
+int* FIFO(struct Page *references, int ref_length, int frame) {
     struct Queue* pages_queue = new_queue();
     int page_faults = 0;
     int write_backs = 0;
@@ -150,7 +154,7 @@ void FIFO(struct Page *references, int ref_length, int frame) {
         if (inQueue(pages_queue, this_page) == false) {
             page_faults++;
 
-            if (pages_queue->size == frame_count) {
+            if (pages_queue->size == frame) {
                 struct Page old_page = dequeue(pages_queue);
                 int dirty_bit = old_page.dirtyBit;
                 if (dirty_bit == 1) {
@@ -160,7 +164,25 @@ void FIFO(struct Page *references, int ref_length, int frame) {
             enqueue(pages_queue, *this_page);
         }
     }
-    printf("page faults: %d, write backs: %d\n", page_faults, write_backs);
+    int* pfwb = (int*)malloc(2 * sizeof(int));
+    pfwb[0] = page_faults;
+    pfwb[1] = write_backs;
+    return pfwb;
+}
+
+void FIFO_output(struct Page references[]) {
+    printf("FIFO\n");
+    printf(p1_table_line1);
+    printf(p1_table_line2);
+    printf(p1_table_line1);
+    for (int i = 0; i < 100; i++) {
+        int* curr_array = FIFO(references, ref_length, i);
+        int pf = curr_array[0];
+        int wb = curr_array[1];
+        printf("%d\n", pf);
+        printf(p1_table_line3, i, pf, wb);
+        printf(p1_table_line1);
+    }
 }
 
 //LRU: replaces the page that has not been used for the longest period of time
