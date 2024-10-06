@@ -172,16 +172,15 @@ int* FIFO(struct Page *references, int ref_length, int frame) {
 
 void FIFO_output(struct Page references[]) {
     printf("FIFO\n");
-    printf(p1_table_line1);
-    printf(p1_table_line2);
-    printf(p1_table_line1);
-    for (int i = 0; i < 100; i++) {
+    printf("%s", p1_table_line1);
+    printf("%s", p1_table_line2);
+    printf("%s", p1_table_line1);
+    for (int i = 1; i < 101; i++) {
         int* curr_array = FIFO(references, ref_length, i);
         int pf = curr_array[0];
         int wb = curr_array[1];
-        printf("%d\n", pf);
         printf(p1_table_line3, i, pf, wb);
-        printf(p1_table_line1);
+        printf("%s", p1_table_line1);
     }
 }
 
