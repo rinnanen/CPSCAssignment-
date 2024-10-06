@@ -41,18 +41,21 @@ void enqueue(struct Queue* queue, struct Page page);
 struct Page dequeue(struct Queue* queue);
 int* FIFO(struct Page *references, int ref_length, int frame);
 bool inQueue(struct Queue *queue, struct Page *this_page);
-void FIFO_output(struct Page references[]);
+void FIFO_output(struct Page *references);
+int* OPT(struct Page *references, int ref_length, int frame);
+void OPT_output(struct Page *references);
+
 
 // constants
 int ref_length = 15050; // make it 150 for now so the data is manageable
 //int frame_count = 100;
-char cmp_string[] = "FIFO";
+char cmp_string[] = "OPT";
 char p1_table_line1[] = "+--------+-------------+-------------+\n";
 char p1_table_line2[] = "| Frames | Page Faults | Write backs |\n";
 char p1_table_line3[] = "| %6d | %11d | %11d |\n";
 
 int main()
-//int argc, char *argv[]
+//parameters - int argc, char *argv[]
 {
     //if (argc < 2)
     //{
@@ -88,7 +91,8 @@ int main()
     if (strcmp(cmp_string, "FIFO") == 0) {
         //argv[1]
         FIFO_output(references);
-    }
+    } else if (strcmp(cmp_string, "OPT") == 0)
+        OPT_output(references);
 
     fclose(file);
     return 0;
@@ -157,9 +161,7 @@ int* FIFO(struct Page *references, int ref_length, int frame) {
             if (pages_queue->size == frame) {
                 struct Page old_page = dequeue(pages_queue);
                 int dirty_bit = old_page.dirtyBit;
-                if (dirty_bit == 1) {
-                    write_backs++;
-                }
+                if (dirty_bit == 1) { write_backs++; }
             }
             enqueue(pages_queue, *this_page);
         }
@@ -170,7 +172,7 @@ int* FIFO(struct Page *references, int ref_length, int frame) {
     return pfwb;
 }
 
-void FIFO_output(struct Page references[]) {
+void FIFO_output(struct Page *references) {
     printf("FIFO\n");
     printf("%s", p1_table_line1);
     printf("%s", p1_table_line2);
@@ -184,6 +186,72 @@ void FIFO_output(struct Page references[]) {
     }
 }
 
-//LRU: replaces the page that has not been used for the longest period of time
-
 //Optimal:  replaces the page that will not be used for the longest period in the future
+int* OPT(struct Page *references, int ref_length, int frame) {
+    struct Queue* queue = new_queue();
+    int page_faults = 0;
+    int write_backs = 0;
+
+    for (int i =0; i < ref_length; i++) {
+        struct Page *this_page = &references[i];
+
+        if (inQueue(queue, this_page) == false) {
+            page_faults++;
+
+            if (queue->size == frame) {
+                int replace_with = -1;
+                int furthest_away = -1;
+
+                struct QueueNode* node = queue->front;
+                for (int j = 0; j < queue->size; j++) {
+                    struct Page curr_page = node->page;
+                    int used_next = -1;
+
+                    for (int k = i + 1; k < ref_length; k++) {
+                        struct Page comp_page = references[k];
+                        if (comp_page.pageNum == curr_page.pageNum) {
+                            used_next = k;
+                            break;
+                        }
+                    }
+
+                    if (used_next == 1) {
+                        replace_with = j;
+                        break;
+                    } 
+                    if (used_next > furthest_away) {
+                        furthest_away = used_next;
+                        replace_with = j;
+                    }
+
+                    node = node->next;
+                }
+
+                struct Page old_page = dequeue(queue);
+                if (old_page.dirtyBit == 1) { write_backs++; }
+            }
+        }
+        enqueue(queue, *this_page);
+    }
+
+    int* pfwb = (int*)malloc(2 * sizeof(int));
+    pfwb[0] = page_faults;
+    pfwb[1] = write_backs;
+    return pfwb;
+}
+
+void OPT_output(struct Page *references) {
+    printf("OPT\n");
+    printf("%s", p1_table_line1);
+    printf("%s", p1_table_line2);
+    printf("%s", p1_table_line1);
+    for (int i = 1; i < 101; i++) {
+        int* curr_array = OPT(references, ref_length, i);
+        int pf = curr_array[0];
+        int wb = curr_array[1];
+        printf(p1_table_line3, i, pf, wb);
+        printf("%s", p1_table_line1);
+    }
+}
+
+//LRU: replaces the page that has not been used for the longest period of time
